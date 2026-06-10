@@ -18,3 +18,5 @@ This repo also includes code to
 
 
 Helper functions to evaluate effectiveness: `stage2.R`, `tmle.R`, & `aps.R`
+
+The full Statistical Analysis Plan (SAP) is available in `SEARCH Community Precision Health SAP_v2.1.pdf`.
