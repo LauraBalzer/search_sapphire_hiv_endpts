@@ -6,10 +6,10 @@ EndpointAnalysis <- function(dt,
                              recency_var='recent_primary', 
                              empirical_prev=T,
                              parameter_pri=T, 
-                             one_sided_test=T, 
-                             verbose=F,
                              save_stage_1=F, 
-                             force_adj=F, QAdj=NULL) {
+                             do.unadjusted=T, QAdj=NULL,
+                             one_sided_test=T, 
+                             verbose=F) {
   
   
   stopifnot(recency_var %in% c("recent_primary", "recent_stats", 
@@ -28,7 +28,7 @@ EndpointAnalysis <- function(dt,
   
   # PrevH = Prevalence of HIV 
   if(empirical_prev){
-    # primary: unadjusted prevalence estimate
+    # primary: unadjusted prevalence estimate (empirical proportion)
     # denominator is number with known status (not N)
     dt_analysis[, PrevH := n_hivpos / n_hivstatus] 
   } else{
@@ -46,7 +46,6 @@ EndpointAnalysis <- function(dt,
   
   # PrevR = % 'recent' by biomarker assay among those with prevalent HIV
   dt_analysis[, PrevR := n_recent / n_hivpos]
-  # with >99% coverage among PWH, skipping TMLE in sensitivity
   
   # print( dt_analysis[,c('N', 'n_hivstatus', 'n_hivpos', 'n_elig', 'n_recent', 'PrevH', 'PrevR')])
   
@@ -104,52 +103,65 @@ EndpointAnalysis <- function(dt,
   
   these_cols <- c(arm_cols, effect_cols)
   
-  if(!force_adj){
+  do_data_adapt <- F
+  
+  if(do.unadjusted){
     # primary: unadjusted effectiveness estimate (Stage 2)
-    df <- as.data.frame(dt_analysis[, .(id = 1:16, U = 1, alpha = 1, 
+    df <- as.data.frame(dt_analysis[, .(id = 1:nrow(dt_analysis), U = 1, alpha = 1, 
                                         A = studyarm, Y = inc_hat)])
-    do.unadjusted <- T
-    QAdj <- NULL
   }else {
     
+    verbose <- T
+  
     if(QAdj=='prev_2yr'){
       # post hoc analysis adjusting for proxy of baseline prev
       dt_analysis[, prev_2yr := n_dx_2yr / N] 
       df <- as.data.frame(dt_analysis[, .(id = 1:16, U = 1, alpha = 1, 
                                           W = prev_2yr,
                                           A = studyarm, Y = inc_hat)])
-      # write.csv(df,'stage1_hiv_inc_prev.csv', row.names = F)
-      
-    } else{
+      QAdj <- 'W'
+    } else if(QAdj=='district_anc_prev'){
       # post hoc analysis adjusting for ANC prev at baseline
       df <- as.data.frame(dt_analysis[, .(id = 1:16, U = 1, alpha = 1, 
                                           W = district_anc_prev,
                                           A = studyarm, Y = inc_hat)])
-      # write.csv(df,'stage1_hiv_inc_anc.csv', row.names = F)
+      QAdj <- 'W'
+    } else{
       
+      #TMLE with APS
+      # using unadjusted for country subgroups
+      if(nrow(dt_analysis)==16 ){
+        do_data_adapt <- T
+        cand_adj <- c("U", "W")
+        df <- as.data.frame(dt_analysis[, .(id = 1:16, U = 1, alpha = 1, 
+                                            W = district_anc_prev,
+                                            A = studyarm, Y = inc_hat)])
+        QAdj <- NULL
+      } else{
+        #print('forced unadjusted')
+        do.unadjusted <- T
+        df <- as.data.frame(dt_analysis[, .(id = 1:16, U = 1, alpha = 1, 
+                                            A = studyarm, Y = inc_hat)])
+      }
     }
-   
-    print(paste(QAdj, '; int: ', round(mean(df[df$A==1,'W'])*100,1), '%; ',
-                'soc: ', round(mean(df[df$A==0,'W'])*100,1), '%.'
-    ))
-    
-    do.unadjusted <- F
-    QAdj <- 'W'
-    verbose <- T
     
   }
   
   
   # for the relative effect
   rel <- Stage2(goal='aRR', data.input=df, do.unadjusted=do.unadjusted, 
-                QAdj=QAdj,
+                QAdj=QAdj, gAdj='U', 
+                do.data.adapt=do_data_adapt,
+                cand.QAdj=cand_adj,
                 one.sided=one.sided, alt.smaller=alt.smaller,
                 verbose=verbose)
   rel <- rel[, these_cols]
   
   # for the absolute effect
   abs <- Stage2(goal='RD', data.input=df, do.unadjusted=do.unadjusted, 
-                QAdj=QAdj,
+                QAdj=QAdj, gAdj='U',
+                do.data.adapt=do_data_adapt,
+                cand.QAdj=cand_adj,
                 one.sided=one.sided, alt.smaller=alt.smaller,
                 verbose=verbose)
   abs <- abs[, these_cols]
@@ -185,6 +197,7 @@ EstIncidence <- function(PrevH, PrevR, MDRI, FRR, BigT) {
 
 
 community_counts <- function(dt) {
+  # counts by community of key variables
   dt_analysis <- dt[, .(
     .N,
     n_participant = sum(!census_only),
@@ -203,7 +216,7 @@ community_counts <- function(dt) {
 }
 
 est_prev_tmle <- function(dt_comm){
-  
+  # wrapper function to use TMLE to adjust for missing data
   # adjust for age, sex, mobility, 
   dt_in <- dt_comm[, .(male, age, residence_nights, residence_months,
                        C = BinaryToCensoring(is.censored = is.na(get('hiv'))), 

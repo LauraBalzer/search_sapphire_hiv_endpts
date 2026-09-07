@@ -45,7 +45,8 @@ dt <- dt[, .(
   # needed for subgroups
   young, 
   kenya,
-  # cascade 
+  # cascade
+  hiv_prevalent, # identical to HIV
   hiv,
   pdx,
   art,
@@ -54,7 +55,14 @@ dt <- dt[, .(
   viremia_mp,
   viremia_10k, # this is really >99,999 ****
   # biomedical HIV prevention coverage 
-  coverage
+  coverage,
+  coverage_bin, # uptake 6mo
+  prep_pep_use_2yrs, # uptake 2yrs
+  coverage_2yr, # coverage 6mo
+  # post-hoc subgroups
+  pregnant, 
+  alcohol,
+  alcohol_unhealthy
   )
 ]
 
@@ -67,13 +75,20 @@ one_sided <- T
 code_qc <- F
 verbose <- T
 
+subgroups <- c('ALL', 'STABLE', 'MEN', 'WOMEN',
+               'YOUNG', 'OLDER', 'KENYA', 'UGANDA',
+               # following are post-hoc
+               'NO_ALCOHOL', 'ALCOHOL_USE', 
+               'NOT_UNHEALTHY', 'UNHEALTHY',
+               'PREGNANT')
+
 # First 90: P(DX=1 | HIV+)
 pdx_hiv <- analyze_wrapper(dt=dt,
                            numerator_col  = "pdx",
                            denominator_col = "hiv",
                            one_sided=one_sided,
                            alt_smaller   = FALSE,  # H1: intervention > control
-                           code_qc=code_qc, verbose=verbose
+                           code_qc=code_qc, verbose=verbose, subgroups=subgroups
                            )
 
 # Second 90: P(ART=1 | DX=1, HIV+)
@@ -82,7 +97,7 @@ art_pdx <- analyze_wrapper(dt=dt,
                            denominator_col = "pdx",
                            one_sided=one_sided,
                            alt_smaller   = FALSE,   # H1: intervention > control
-                           code_qc=code_qc, verbose=verbose
+                           code_qc=code_qc, verbose=verbose, subgroups=subgroups
                            )
 
 
@@ -92,7 +107,7 @@ vs_art <- analyze_wrapper(dt=dt,
                           denominator_col = "art",
                           one_sided=one_sided,
                           alt_smaller   = FALSE,   # H1: intervention > control
-                          code_qc=code_qc, verbose=verbose
+                          code_qc=code_qc, verbose=verbose, subgroups=subgroups
                           
 )
 
@@ -102,7 +117,7 @@ vs_hiv <- analyze_wrapper(dt=dt,
                           denominator_col = "hiv",
                           one_sided=one_sided,
                           alt_smaller   = FALSE,   # H1: intervention > control
-                          code_qc=code_qc, verbose=verbose
+                          code_qc=code_qc, verbose=verbose, subgroups=subgroups
 )
 
 
@@ -115,7 +130,8 @@ viremia <- analyze_wrapper(dt=dt,
                            numerator_col  = "viremia_mp",
                            one_sided=one_sided,
                            alt_smaller   = TRUE,    # H1: intervention < control
-                           code_qc=code_qc, verbose=verbose
+                           code_qc=code_qc, verbose=verbose, subgroups=subgroups
+                           
 )
 
 
@@ -124,7 +140,7 @@ viremia_10k <- analyze_wrapper(dt=dt,
                                numerator_col  = "viremia_10k",
                                one_sided=one_sided,
                                alt_smaller   = TRUE,    # H1: intervention < control
-                               code_qc=code_qc, verbose=verbose
+                               code_qc=code_qc, verbose=verbose, subgroups=subgroups
                                
 )
 
@@ -141,14 +157,36 @@ coverage <- analyze_wrapper(dt=dt_coverage,
                            numerator_col  = "coverage",
                            one_sided=one_sided,
                            alt_smaller   = FALSE,   # H1: intervention > control
-                           code_qc=code_qc, verbose=verbose
+                           code_qc=code_qc, verbose=verbose, subgroups=subgroups
                            )
+
+## Note: the following were pre-specified 
+## but not included in the original code upload
+coverage_bin <- analyze_wrapper(dt=dt_coverage,
+                                numerator_col  = "coverage_bin",
+                                one_sided=one_sided,
+                                alt_smaller   = FALSE,   # H1: intervention > control
+                                code_qc=code_qc, verbose=verbose, subgroups=subgroups
+)
+
+prep_pep_use_2yrs <- analyze_wrapper(dt=dt_coverage,
+                                numerator_col  = "prep_pep_use_2yrs",
+                                one_sided=one_sided,
+                                alt_smaller   = FALSE,   # H1: intervention > control
+                                code_qc=code_qc, verbose=verbose, subgroups=subgroups)
+
+coverage_2yr <- analyze_wrapper(dt=dt_coverage,
+                            numerator_col  = "coverage_2yr",
+                            one_sided=one_sided,
+                            alt_smaller   = FALSE,   # H1: intervention > control
+                            code_qc=code_qc, verbose=verbose, subgroups=subgroups)
+
 
 
 # SAVE EVERYTHING
 
 save(pdx_hiv, art_pdx, vs_art, vs_hiv,
      viremia, viremia_10k,
-     coverage,
+     coverage, coverage_bin,  prep_pep_use_2yrs, coverage_2yr,
      file=file_name)
 

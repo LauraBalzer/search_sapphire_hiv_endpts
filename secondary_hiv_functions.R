@@ -3,17 +3,16 @@
 # documented & edited by Laura Balzer
 
 analyze_wrapper <- function(dt, numerator_col, denominator_col = "none",
-                           one_sided=T, alt_smaller, code_qc=F, verbose=F) {
+                           one_sided=T, alt_smaller=NULL, code_qc=F, 
+                           verbose=F, subgroups='ALL') {
  
   OUT <- NULL 
 
+  # subgroups are now an input parameter
   if(code_qc){
     subgroups <-  'ALL'
-  } else{
-    subgroups <- c('ALL', 'STABLE', 'MEN', 'WOMEN',
-                   'YOUNG', 'OLDER', 'KENYA', 'UGANDA')
-  }
- 
+  } 
+  
   for(j in subgroups){
     
     dt_in <- get_subgroups(dt, j)
@@ -47,7 +46,7 @@ analyze_wrapper <- function(dt, numerator_col, denominator_col = "none",
                     alt_smaller = alt_smaller, 
                     verbose=(verbose & j=='all'), 
                     code_qc=code_qc,
-                    append_stage1_csv = F)['u',]
+                    append_stage1_csv = FALSE)['u',]
     rownames(temp) <- paste0(j,'_u_', rownames(temp))
     OUT <- rbind(OUT, temp)  
     
@@ -87,8 +86,6 @@ analyze <- function(dt_in, numerator_col, denominator_col = "none", unadj_stage1
   
   # subset only on community code and community's endpt estimate
   comm_est <- comm_est[, .(community_code, est)]
-
-  # if(!code_qc){ print(format_round(comm_est$est, 3)) }
 
   # merge in cluster-level variables
   dt_comm <- merge(
@@ -270,6 +267,16 @@ get_subgroups <- function(dt, this_subgroup){
     dt_in <- dt[kenya == 1,]
   } else if(this_subgroup=='UGANDA'){
     dt_in <- dt[kenya == 0,]
+  }  else if(this_subgroup=='ALCOHOL_USE'){
+    dt_in <- dt[which(alcohol==1),]
+  }  else if(this_subgroup=='NO_ALCOHOL'){
+    dt_in <- dt[which(alcohol==0),]  
+  } else if(this_subgroup=='NOT_UNHEALTHY'){
+    dt_in <- dt[which(alcohol_unhealthy==0),]
+  } else if(this_subgroup=='UNHEALTHY'){
+    dt_in <- dt[which(alcohol_unhealthy==1),]
+  } else if(this_subgroup=='PREGNANT'){
+    dt_in <- dt[which(pregnant==1),]
   } 
   
   dt_in 
