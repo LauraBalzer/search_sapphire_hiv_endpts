@@ -14,7 +14,7 @@ The relevant code is in `secondary_hiv_run.R` and `secondary_hiv_functions.R`.
 
 
 This repo also includes code to 
-- run simulations evaluate to RITA performance via `simulate_primary_endpoint.R` with results in `simulate_primary_endpoint.csv`
+- run simulations evaluate to RITA performance via `simulate_primary_endpoint.R` with results in `simulate_primary_endpoint.csv` (SAP version) and via `simulation_tables.R` with results in `table_I.csv` and `table_II.csv` (updated - Nature version)
 - use treatment-blind simulations to confirm Type-I error control for the primary endpoint via `txt_blind_sims.R` with results in `inc_txt_blind_reps5000.rdata`
 
 
