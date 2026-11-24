@@ -1,0 +1,7 @@
+Matching quality (rho),Analysis,"Coverage, null",Type I error,"Coverage, RR 0.29",Power,"Mean CI width (log), RR 0.29"
+0.2,Pairs broken (pre-specified),0.951 (0.007),0.051,0.964 (0.006),0.866,2.03
+0.2,Pairs maintained,0.953 (0.007),0.045,0.972 (0.005),0.797,2.26
+0.5,Pairs broken (pre-specified),0.957 (0.006),0.041,0.968 (0.006),0.878,2.03
+0.5,Pairs maintained,0.953 (0.007),0.052,0.963 (0.006),0.830,2.19
+0.8,Pairs broken (pre-specified),0.971 (0.005),0.031,0.975 (0.005),0.878,2.02
+0.8,Pairs maintained,0.951 (0.007),0.050,0.960 (0.006),0.850,2.12
